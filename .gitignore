@@ -14,6 +14,9 @@ $RECYCLE.BIN
 # Environments
 .env
 
+# Pyenv files
+.python-version
+
 # Thumbnail cache files
 ._*
 Thumbs.db
