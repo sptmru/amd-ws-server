@@ -17,9 +17,6 @@ $RECYCLE.BIN
 # Pyenv files
 .python-version
 
-# Thumbnail cache files
-._*
-Thumbs.db
 
 # IDE files
 .vscode/*
