@@ -24,7 +24,7 @@ import json
 
 from base64 import b64decode
 
-#Only used for record function
+# Only used for record function
 import datetime
 import wave
 
@@ -39,10 +39,9 @@ from sklearn.naive_bayes import GaussianNB
 
 load_dotenv()
 
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 logging.captureWarnings(True)
-
 
 # Constants:
 MS_PER_FRAME = 15  # Duration of a frame in ms
@@ -50,6 +49,7 @@ MY_LVN = os.getenv("MY_LVN")
 APP_ID = os.getenv("APP_ID")
 PROJECT_ID = os.getenv("PROJECT_ID")
 CLOUD_STORAGE_BUCKET = os.getenv("CLOUD_STORAGE_BUCKET")
+
 
 def _get_private_key():
     try:
@@ -59,6 +59,7 @@ def _get_private_key():
             private_key = f.read()
 
     return private_key
+
 
 PRIVATE_KEY = _get_private_key()
 if PROJECT_ID and CLOUD_STORAGE_BUCKET:
@@ -75,6 +76,8 @@ loaded_model = pickle.load(open("models/GaussianNB-20190130T1233.pkl", "rb"))
 print(loaded_model)
 client = nexmo.Client(application_id=APP_ID, private_key=PRIVATE_KEY)
 print(client)
+
+
 class BufferedPipe(object):
     def __init__(self, max_frames, sink):
         """
@@ -104,13 +107,15 @@ class BufferedPipe(object):
         self.count = 0
         self.payload = b''
 
+
 class AudioProcessor(object):
     def __init__(self, path, rate, clip_min, client):
         self.rate = rate
-        self.bytes_per_frame = rate/25
+        self.bytes_per_frame = rate / 25
         self._path = path
         self.clip_min_frames = clip_min // MS_PER_FRAME
         self.client = client
+
     def process(self, count, payload, id):
         if count > self.clip_min_frames:  # If the buffer is less than CLIP_MIN_MS, ignore it
             fn = "{}rec-{}-{}.wav".format('', id, datetime.datetime.now().strftime("%Y%m%dT%H%M%S"))
@@ -124,15 +129,16 @@ class AudioProcessor(object):
             self.removeFile(fn)
         else:
             info('Discarding {} frames'.format(str(count)))
+
     def process_file(self, wav_file):
         if loaded_model != None:
             print("load file {}".format(wav_file))
 
             X, sample_rate = librosa.load(wav_file, res_type='kaiser_fast')
-            mfccs = np.mean(librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=40).T,axis=0)
+            mfccs = np.mean(librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=40).T, axis=0)
             X = [mfccs]
             prediction = loaded_model.predict(X)
-            print("prediction",prediction)
+            print("prediction", prediction)
 
             if prediction[0] == 0:
                 beep_captured = True
@@ -147,8 +153,10 @@ class AudioProcessor(object):
 
         else:
             print("model not loaded")
+
     def removeFile(self, wav_file):
-         os.remove(wav_file)
+        os.remove(wav_file)
+
 
 class WSHandler(tornado.websocket.WebSocketHandler):
     def initialize(self):
@@ -158,24 +166,26 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         self.tick = None
         self.id = uuid.uuid4().hex
         self.vad = webrtcvad.Vad()
-          # Level of sensitivity
+        # Level of sensitivity
         self.processor = None
         self.path = None
-        self.rate = None #default to None
-        self.silence = 20 #default of 20 frames (400ms)
+        self.rate = None  # default to None
+        self.silence = 20  # default of 20 frames (400ms)
         conns[self.id] = self
+
     def open(self, path):
         info("client connected")
         clients.append(self)
         debug(self.request.uri)
         self.path = self.request.uri
         self.tick = 0
+
     def on_message(self, message):
         # Check if message is Binary or Text
         if type(message) != str:
             # print(self.rate)
             if self.vad.is_speech(message, self.rate):
-                debug ("SPEECH from {}".format(self.id))
+                debug("SPEECH from {}".format(self.id))
                 self.tick = self.silence
                 self.frame_buffer.append(message, self.id)
             else:
@@ -186,7 +196,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         else:
             # Here we should be extracting the meta data that was sent and attaching it to the connection object
             data = json.loads(message)
-            print("on_message",data)
+            print("on_message", data)
             if data.get('content-type'):
                 m_type, m_options = cgi.parse_header(data['content-type'])
                 self.rate = 16000
@@ -201,6 +211,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                 self.processor = AudioProcessor(self.path, self.rate, clip_min, client).process
                 self.frame_buffer = BufferedPipe(clip_max // MS_PER_FRAME, self.processor)
                 self.write_message('ok')
+
     def on_close(self):
         print("close")
         # Remove the connection from the list of connections
@@ -215,6 +226,7 @@ class PingHandler(tornado.web.RequestHandler):
         self.write('ok')
         self.set_header("Content-Type", 'text/plain')
         self.finish()
+
 
 class EventHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
@@ -232,7 +244,6 @@ class EventHandler(tornado.web.RequestHandler):
         except:
             pass
 
-
         try:
             if data["status"] == "completed":
                 uuids.clear()
@@ -246,28 +257,28 @@ class EventHandler(tornado.web.RequestHandler):
             print(e)
             pass
 
-
         self.content_type = 'text/plain'
         self.write('ok')
         self.finish()
+
 
 class EnterPhoneNumberHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self):
         ncco = [
-              {
+            {
                 "action": "talk",
                 "text": "Please enter a phone number to dial"
-              },
-              {
+            },
+            {
                 "action": "input",
-                "eventUrl": [self.request.protocol +"://" + self.request.host +"/ivr"],
-                "timeOut":10,
-                "maxDigits":12,
-                "submitOnHash":True
-              }
+                "eventUrl": [self.request.protocol + "://" + self.request.host + "/ivr"],
+                "timeOut": 10,
+                "maxDigits": 12,
+                "submitOnHash": True
+            }
 
-            ]
+        ]
         self.write(json.dumps(ncco))
         self.set_header("Content-Type", 'application/json; charset="utf-8"')
         self.finish()
@@ -279,44 +290,45 @@ class AcceptNumberHandler(tornado.web.RequestHandler):
         data = json.loads(self.request.body)
         print(data)
         ncco = [
-              {
+            {
                 "action": "talk",
                 "text": "Thanks. Connecting you now"
-              },
+            },
             {
                 "action": "record",
-                "eventUrl": [self.request.protocol +"://" + self.request.host  +"/recording"],
-              },
-             {
-             "action": "connect",
-              "eventUrl": [self.request.protocol +"://" + self.request.host  + "/event"],
-               "from": MY_LVN,
-               "endpoint": [
-                 {
-                   "type": "phone",
-                   "number": data["dtmf"]
-                 }
-               ]
-             },
-              {
-                 "action": "connect",
-                 "eventUrl": [self.request.protocol +"://" + self.request.host  +"/event"],
-                 "from": MY_LVN,
-                 "endpoint": [
-                     {
+                "eventUrl": [self.request.protocol + "://" + self.request.host + "/recording"],
+            },
+            {
+                "action": "connect",
+                "eventUrl": [self.request.protocol + "://" + self.request.host + "/event"],
+                "from": MY_LVN,
+                "endpoint": [
+                    {
+                        "type": "phone",
+                        "number": data["dtmf"]
+                    }
+                ]
+            },
+            {
+                "action": "connect",
+                "eventUrl": [self.request.protocol + "://" + self.request.host + "/event"],
+                "from": MY_LVN,
+                "endpoint": [
+                    {
                         "type": "websocket",
-                        "uri" : "ws://"+self.request.host +"/socket",
+                        "uri": "ws://" + self.request.host + "/socket",
                         "content-type": "audio/l16;rate=16000",
                         "headers": {
-                            "uuid":data["uuid"]
+                            "uuid": data["uuid"]
                         }
-                     }
-                 ]
-               }
-            ]
+                    }
+                ]
+            }
+        ]
         self.write(json.dumps(ncco))
         self.set_header("Content-Type", 'application/json; charset="utf-8"')
         self.finish()
+
 
 class RecordHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
@@ -335,6 +347,7 @@ class RecordHandler(tornado.web.RequestHandler):
         self.set_header("Content-Type", 'text/plain')
         self.finish()
 
+
 def main():
     try:
         logging.basicConfig(
@@ -342,7 +355,7 @@ def main():
             format="%(levelname)7s %(message)s",
         )
         application = tornado.web.Application([
-			url(r"/ping", PingHandler),
+            url(r"/ping", PingHandler),
             (r"/event", EventHandler),
             (r"/ncco", EnterPhoneNumberHandler),
             (r"/recording", RecordHandler),
