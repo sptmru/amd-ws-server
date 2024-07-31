@@ -1,0 +1,24 @@
+# General
+.DS_Store
+Thumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN
+*~
+.directory
+.Trash-*
+.nfs*
+
+# Logs
+*.log
+
+# Environments
+.env
+
+# Thumbnail cache files
+._*
+Thumbs.db
+
+# IDE files
+.vscode/*
+!.vscode/launch.json
+.idea
