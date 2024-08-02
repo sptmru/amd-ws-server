@@ -1,0 +1,54 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    name: Build Docker image and push to Docker Hub
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Read version from file
+        id: read_version
+        run: |
+          version=$(cat version.txt)
+          echo "Current version: $version"
+          echo "::set-output name=version::$version"
+
+      - name: Increment version
+        id: increment_version
+        run: |
+          version=${{ steps.read_version.outputs.version }}
+          new_version=$(awk -F. '{$NF = $NF + 1;} 1' OFS=. <<< "$version")
+          echo "New version: $new_version"
+          echo "::set-output name=new_version::$new_version"
+
+      - name: Update version file
+        run: |
+          echo "${{ steps.increment_version.outputs.new_version }}" > version.txt
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add version.txt
+          git commit -m "Increment version to ${{ steps.increment_version.outputs.new_version }}"
+          git push
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker image
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/amd-ws-server:${{ steps.increment_version.outputs.new_version }} .
+
+      - name: Push Docker image
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/amd-ws-server:${{ steps.increment_version.outputs.new_version }}
