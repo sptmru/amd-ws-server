@@ -135,4 +135,5 @@ webrtcvad==2.0.10
 Werkzeug==2.0.3
 widgetsnbextension==3.6.8
 wrapt==1.12.1
+xgboost==1.5.2
 zipp==3.6.0
