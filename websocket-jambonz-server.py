@@ -46,7 +46,7 @@ logging.captureWarnings(True)
 MS_PER_FRAME = 15  # Duration of a frame in ms
 
 # Load the pre-trained model
-loaded_model = pickle.load(open("models/GaussianNB-20190130T1233.pkl", "rb"))
+loaded_model = pickle.load(open("models/rf.pkl", "rb"))
 print(loaded_model)
 
 # Global variables
@@ -179,6 +179,7 @@ def main():
         port = int(os.getenv('PORT', 8000))
         http_server.listen(port)
         tornado.ioloop.IOLoop.instance().start()
+        logger.info("WS server started")
     except KeyboardInterrupt:
         pass
 
