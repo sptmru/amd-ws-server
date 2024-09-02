@@ -85,8 +85,12 @@ def process_file(wav_file):
         if beep_captured:
             logger.info("Beep detected")
 
-        for client in clients:
-            client.write_message({"beep_detected": beep_captured})
+            response = {
+                "type": "beep_detected",
+            }
+
+            for client in clients:
+                client.write_message(json.dumps(response))
     else:
         logger.error("Model not loaded")
 
@@ -162,17 +166,30 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                     self.frame_buffer.process()
         else:
             data = json.loads(message)
-            self.rate = 16000
-            clip_min = int(data.get('clip_min', 200))
-            clip_max = int(data.get('clip_max', 10000))
-            silence_time = int(data.get('silence_time', 300))
-            sensitivity = int(data.get('sensitivity', 3))
 
-            self.vad.set_mode(sensitivity)
-            self.silence = silence_time // MS_PER_FRAME
-            self.processor = AudioProcessor(self.rate, clip_min).process
-            self.frame_buffer = BufferedPipe(clip_max // MS_PER_FRAME, self.processor)
-            self.write_message('ok')
+            if data.get('type') == 'start':
+                logger.info("Received 'start' message")
+                self.rate = data.get('sampleRateHz', 16000)
+                clip_min = int(data.get('clip_min', 200))
+                clip_max = int(data.get('clip_max', 10000))
+                silence_time = int(data.get('silence_time', 300))
+                sensitivity = int(data.get('sensitivity', 3))
+
+                self.vad.set_mode(sensitivity)
+                self.silence = silence_time // MS_PER_FRAME
+                self.processor = AudioProcessor(self.rate, clip_min).process
+                self.frame_buffer = BufferedPipe(clip_max // MS_PER_FRAME, self.processor)
+                self.write_message('ok')
+
+            elif data.get('type') == 'stop':
+                logger.info("Received 'stop' message")
+                if self.frame_buffer:
+                    self.frame_buffer.process()
+                self.write_message('stopped')
+                self.close()
+
+            else:
+                logger.warning(f"Received unknown message type: {data.get('type')}")
 
     def on_close(self):
         logger.info("Client disconnected")
