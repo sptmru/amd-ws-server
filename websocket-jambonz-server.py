@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import logging
 import os
 import sys
@@ -51,6 +49,9 @@ print(loaded_model)
 
 # Global variables
 clients = []
+
+# Bearer Token
+BEARER_TOKEN = os.getenv('BEARER_TOKEN', 'wby3HSdabFKufpFKTsRsPenaBu7aRt3U96y')
 
 
 class BufferedPipe(object):
@@ -127,7 +128,23 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         self.rate = None
         self.silence = 20
 
+    def check_origin(self, origin):
+        return True
+
+    def authenticate(self):
+        auth_header = self.request.headers.get('Authorization', None)
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+            if token == BEARER_TOKEN:
+                return True
+        return False
+
     def open(self, path):
+        if not self.authenticate():
+            logger.warning("Authentication failed: Invalid or missing token")
+            self.close(reason="Authentication failed")
+            return
+
         logger.info("Client connected")
         clients.append(self)
         self.path = self.request.uri
