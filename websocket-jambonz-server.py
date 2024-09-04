@@ -155,6 +155,8 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         self.tick = 0
 
     def on_message(self, message):
+        logger.info("Received message:")
+        logger.info(message)
         if isinstance(message, bytes):
             if self.vad.is_speech(message, self.rate):
                 logger.debug("SPEECH detected")
