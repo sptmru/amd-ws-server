@@ -117,10 +117,10 @@ class WSHandler(tornado.websocket.WebSocketHandler):
     def __init__(self, application, request):
         super().__init__(application, request)
         self.processor = None
-        self.silence = None
+        self.silence = 20
         self.rate = None
-        self.id = None
-        self.vad = None
+        self.id = uuid.uuid4().hex
+        self.vad = webrtcvad.Vad()
         self.frame_buffer = None
         self.path = None
         self.tick = None
