@@ -41,7 +41,7 @@ logger.addHandler(log_console_handler)
 logging.captureWarnings(True)
 
 # Constants:
-MS_PER_FRAME = 15  # Duration of a frame in ms
+MS_PER_FRAME = 10  # Duration of a frame in ms
 
 # Load the pre-trained model
 loaded_model = pickle.load(open("models/rf.pkl", "rb"))
@@ -155,8 +155,6 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         self.tick = 0
 
     def on_message(self, message):
-        logger.info("Received message:")
-        logger.info(message)
         if isinstance(message, bytes):
             if self.vad.is_speech(message, self.rate):
                 logger.debug("SPEECH detected")
@@ -171,11 +169,11 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
             if data.get('type') == 'start':
                 logger.info("Received 'start' message")
-                self.rate = data.get('sampleRateHz', 16000)
+                self.rate = data.get('sampleRateHz', 8000)
                 clip_min = int(data.get('clip_min', 200))
                 clip_max = int(data.get('clip_max', 10000))
                 silence_time = int(data.get('silence_time', 300))
-                sensitivity = int(data.get('sensitivity', 3))
+                sensitivity = int(data.get('sensitivity', 0)) # TODO: should probably be set to 3 (most sensitive) in production
 
                 self.vad.set_mode(sensitivity)
                 self.silence = silence_time // MS_PER_FRAME
