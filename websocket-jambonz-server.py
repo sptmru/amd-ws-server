@@ -211,9 +211,9 @@ def main():
         ])
         http_server = tornado.httpserver.HTTPServer(application)
         port = int(os.getenv('PORT', 8000))
+        logger.info(f"WS server started on port {port}")
         http_server.listen(port)
         tornado.ioloop.IOLoop.instance().start()
-        logger.info("WS server started")
     except KeyboardInterrupt:
         pass
 
