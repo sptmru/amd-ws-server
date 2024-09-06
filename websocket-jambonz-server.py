@@ -86,7 +86,17 @@ def process_file(wav_file):
             logger.info("Beep detected")
 
             response = {
-                "type": "beep_detected",
+                "type": "transcription",
+                "is_final": True,
+                "alternatives": [
+                    {
+                        "transcript": "Beep detected",
+                        "confidence": 1.0
+                    },
+                ],
+                "language": "en-US",
+                "channel": "1",
+                "beep_detected": True,
             }
 
             for client in clients:
