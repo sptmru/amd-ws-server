@@ -156,14 +156,18 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
     def on_message(self, message):
         if isinstance(message, bytes):
-            if self.vad.is_speech(message, self.rate):
-                logger.debug("SPEECH detected")
-                self.frame_buffer.append(message)
-            else:
-                logger.debug("Silence detected")
-                self.silence -= 1
-                if self.silence == 0:
-                    self.frame_buffer.process()
+            try:
+                if self.vad.is_speech(message, self.rate):
+                    logger.debug("SPEECH detected")
+                    self.frame_buffer.append(message)
+                else:
+                    logger.debug("Silence detected")
+                    self.silence -= 1
+                    if self.silence == 0:
+                        self.frame_buffer.process()
+            except Exception as e:
+                logger.error(f"Error while parsing message: {str(e)}")
+                pass
         else:
             data = json.loads(message)
 
